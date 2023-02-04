@@ -1,0 +1,1 @@
+pyuic5.exe -x "..\..\course_work\ui_files\crypto_UI.ui" -o "..\..\course_work\py_files\crypto_UI.py"
