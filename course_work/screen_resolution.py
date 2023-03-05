@@ -1,4 +1,5 @@
 import ctypes
+import string
 
 
 class ScreenResolution:
@@ -15,10 +16,16 @@ class ScreenResolution:
 
     def get_resolution(self, type_answer=None):
         if (type_answer == "dict") or (type_answer is None):
-            self.dict_res["width"] = self.user32.GetSystemMetrics(0)
-            self.dict_res["height"] = self.user32.GetSystemMetrics(1)
+            self.dict_res["width"] = self.width
+            self.dict_res["height"] = self.height
             return self.dict_res
 
 
 scr = ScreenResolution()
 print(scr.get_resolution())
+
+# b = bytes("string", "utf-8")
+# print(b)
+# h = b.hex()
+# print(h)
+# print(bin(int(h, 16))[2:])
