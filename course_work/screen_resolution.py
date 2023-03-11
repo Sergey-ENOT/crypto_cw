@@ -23,9 +23,3 @@ class ScreenResolution:
 
 scr = ScreenResolution()
 print(scr.get_resolution())
-
-# b = bytes("string", "utf-8")
-# print(b)
-# h = b.hex()
-# print(h)
-# print(bin(int(h, 16))[2:])
