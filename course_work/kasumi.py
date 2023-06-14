@@ -125,19 +125,16 @@ class Kasumi:
     def set_key(self, user_key):
         self.list_keys.clear()
         self.list_const_keys.clear()
-        print("start_set_key")
         if user_key[:2] == "0x":
             user_key = user_key[2:]
         if len(user_key) < 32:
             user_key = self.complete_str(user_key, 32)
         elif len(user_key) > 32:
             user_key = user_key[:32]
-        print("user_key:", user_key)
         for i in range(0, len(user_key), 4):
             cur_key = user_key[i:i+4]
             self.list_keys.append(cur_key)
             self.list_const_keys.append(self.xor_hex(cur_key, self.constant[i // 4]))
-        print("key_ready")
 
     def func_fl(self, left_block):
         left_block = self.complete_str(left_block, 32)
@@ -203,14 +200,12 @@ class Kasumi:
                 res_file_enc = self.encrypt(plaintext, mode_ecb)[2:]
                 try:
                     with open(path_output, "wb") as g:
-                        print(len(res_file_enc))
                         g.write(bytes.fromhex(res_file_enc))
                 except ValueError as err:
                     try:
                         with open(path_output, "wb") as g:
                             g.write(bytes.fromhex(self.complete_str(res_file_enc, len(res_file_enc)+1)))
                     except ValueError as error:
-                        print(error)
                         return error
                     return err
             return "Операция зашифрования успешно выполнена"
@@ -218,7 +213,6 @@ class Kasumi:
             return "Файл для считывания не найден"
 
     def encrypt(self, plaintext, mode_ecb=False):
-        print("plain_text:", plaintext)
         if plaintext[:2] == "0x":
             plaintext = plaintext[2:]
         res_str = ""
@@ -244,7 +238,6 @@ class Kasumi:
                 self.new_vi = hex(int(res_enc, 2))[2:]
         final_block = "1" * 32 + self.complete_str(bin(self.added_null)[2:], 32)
         res_str += final_block
-        print("final_res", hex(int(final_block, 2)), len(res_str))
         return self.complete_res_hex(res_str, len(plaintext))
 
     def encrypt_block(self):
@@ -284,16 +277,13 @@ class Kasumi:
             chipertext = chipertext[2:]
         res_str = ""
         self.last_vi = self.base_vi
-        print("chiper_text", chipertext[len(chipertext)-16:len(chipertext)-1])
+
         if chipertext[len(chipertext)-16:len(chipertext)-1] == "ffffffff0000000":
             self.added_null = int(chipertext[-1], 16)
-            print("успех")
         else:
-            print("error_input")
             raise ValueError
 
         for i in range(0, len(chipertext)-16, 16):
-            print(chipertext[:len(chipertext)-16])
             if mode_ecb:
                 self.new_vi = chipertext[i:i+16]
             self.left = bin(int(chipertext[i:i+8], 16))[2:]
@@ -305,7 +295,6 @@ class Kasumi:
                 self.last_vi = self.new_vi
             else:
                 res_str += self.complete_str(res_dec, 64)
-        print("success_dec")
         return self.complete_res_hex(res_str, len(chipertext) - 16)[:len(chipertext)-14-self.added_null]
 
     def decrypt_block(self):

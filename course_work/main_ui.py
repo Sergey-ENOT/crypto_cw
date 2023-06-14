@@ -1,6 +1,6 @@
 import os
 import sys
-from PyQt5 import QtWidgets
+from PyQt5 import QtWidgets, QtGui
 from PyQt5.QtWidgets import QMessageBox, QFileDialog
 from py_files.crypto_UI import Ui_MainWindow
 from kasumi import Kasumi
@@ -21,34 +21,49 @@ class CryptoWindow(QtWidgets.QMainWindow):
         self.kasumi = Kasumi()
 
     def update_ui(self):
+        CryptoWindow.setWindowIcon(self, QtGui.QIcon("fstek.png"))
         self.ui.label_current_text_status.setText("Зашифрование")
+        self.ui.checkBox_autofill.setChecked(True)
 
     def connect_signals(self):
         self.ui.pushButton_change_file_mode.clicked.connect(self.change_operation)
         self.ui.pushButton_change_text_mode.clicked.connect(self.change_operation)
         self.ui.pushButton_execute_text_mode.clicked.connect(self.execute_text)
+        self.ui.pushButton_execute_file_mode.clicked.connect(self.execute_file)
         self.ui.pushButton_open_file.clicked.connect(self.open_file_dialog)
         self.ui.pushButton_save_file.clicked.connect(self.save_file_dialog)
 
-    def auto_path_save(self):
-        temp_path = os.path.splitext(self.path_open)[0]
-        temp_path += ".txt"
-        self.path_save = temp_path
-        self.ui.label_path_save.setText(str(temp_path))
+    def change_paths(self):
+        path_open = self.ui.lineEdit_open_path.text()
+        path_save = self.ui.lineEdit_save_path.text()
+        self.ui.lineEdit_open_path.setText(path_save)
+        self.ui.lineEdit_save_path.setText(path_open)
+
+    def auto_path_save(self, operation):
+        if operation == "Зашифрование":
+            temp_path = self.path_open + ".kasumi"
+            self.path_save = temp_path
+            self.ui.lineEdit_save_path.setText(str(temp_path))
+        else:
+            temp_path = os.path.splitext(self.path_open)[0]
+            self.path_save = temp_path
+            self.ui.lineEdit_save_path.setText(str(temp_path))
 
     def open_file_dialog(self):
         file, _ = QFileDialog.getOpenFileName(self, "Выберите файл для открытия", "",
                                               "All Files (*);;Text Files (*.txt)")
         if file:
             self.path_open = file
-            self.ui.label_path_open.setText(str(self.path_open))
+            self.ui.lineEdit_open_path.setText(str(self.path_open))
+            if self.ui.checkBox_autofill.isChecked():
+                self.auto_path_save(self.ui.label_current_file_status.text())
 
     def save_file_dialog(self):
         file_name, _ = QFileDialog.getSaveFileName(self, "Выберите файл для сохранения", "",
                                                    "Text Files (*.txt);;All Files (*)")
         if file_name:
             self.path_save = file_name
-            self.ui.label_path_save.setText(str(self.path_save))
+            self.ui.lineEdit_save_path.setText(str(self.path_save))
 
     def show_messagebox(self, level, title, text):
         if level == "critical":
@@ -76,31 +91,46 @@ class CryptoWindow(QtWidgets.QMainWindow):
             self.ui.label_current_file_status.setText("Зашифрование")
             self.ui.label_current_text_status.setText("Зашифрование")
             self.encryption_status = True
+        if self.ui.checkBox_change_paths.isChecked():
+            self.change_paths()
 
-    def use_chiper(self, in_text, input_mode="text", mode_enc=False):
-        print("start_use")
+    def use_chiper(self, in_text, input_mode, mode_enc=False):
+        self.kasumi.set_key(self.ui.lineEdit_user_key.text().encode("utf-8").hex())
         if input_mode == "text":
-            print("start_text")
-            self.kasumi.set_key(self.ui.lineEdit_user_key.text().encode("utf-8").hex())
             if self.encryption_status:
                 try:
-                    print("in_text_text:", in_text.encode("utf-8").hex())
                     return self.kasumi.encrypt(in_text.encode("utf-8").hex(), mode_enc)
                 except Exception as err:
                     self.show_messagebox("critical", "Critical", str(err))
+                    return None
             else:
-                bytes_res_dec = ""
+                hex_res = ""
                 try:
                     hex_res = self.kasumi.decrypt(in_text, mode_enc)
                     bytes_res_dec = bytes.fromhex(hex_res[2:])
-                    print("RES_BYTES:", bytes_res_dec)
                     res_utf_8 = bytes_res_dec.decode("utf-8")
                     return res_utf_8
-                except UnicodeDecodeError as err:
-                    print("error_UDE:", err)
-                    return bytes_res_dec
-                except ValueError as err:
-                    print("error_VE:", err)
+                except UnicodeDecodeError:
+                    return hex_res[2:]
+                except ValueError:
+                    self.show_messagebox("critical", "Critical", "Ошибка расшифрования. Неверный вход")
+                    return None
+        if input_mode == "file":
+            if self.encryption_status:
+                try:
+                    return self.kasumi.encrypt_file(self.ui.lineEdit_open_path.text(),
+                                                    self.ui.lineEdit_save_path.text(),
+                                                    mode_enc)
+                except Exception as err:
+                    self.show_messagebox("critical", "Critical", str(err))
+                    return None
+            else:
+                try:
+                    res_dec_file = self.kasumi.decrypt_file(self.ui.lineEdit_open_path.text(),
+                                                            self.ui.lineEdit_save_path.text(),
+                                                            mode_enc)
+                    return res_dec_file
+                except ValueError:
                     self.show_messagebox("critical", "Critical", "Ошибка расшифрования. Неверный вход")
                     return None
 
@@ -116,8 +146,28 @@ class CryptoWindow(QtWidgets.QMainWindow):
             if self.ui.radioButton_ecb_tm.isChecked():
                 mode_enc = True
             res_operation = self.use_chiper(self.ui.plainTextEdit_input.toPlainText(), "text", mode_enc)
-            print("res_op:", res_operation)
             self.ui.plainTextEdit_output.setPlainText(str(res_operation))
+
+    def execute_file(self):
+        text_inf = "Пустое значение"
+        if self.check_empty(self.ui.lineEdit_open_path.text()):
+            self.show_messagebox("warning", "Warning", text_inf + " пути открытия файла")
+        elif self.check_empty(self.ui.lineEdit_save_path.text()):
+            self.show_messagebox("warning", "Warning", text_inf + " пути сохранения файла")
+        elif self.check_empty(self.ui.lineEdit_user_key.text()):
+            self.show_messagebox("warning", "Warning", text_inf + " ключа")
+        else:
+            mode_enc = False
+            if self.ui.radioButton_ecb_fm.isChecked():
+                mode_enc = True
+            self.ui.label_status_operation_text.setText("выполнение операции начато")
+            self.ui.label_status_operation_text.repaint()
+            res_operation = self.use_chiper(in_text="", input_mode="file", mode_enc=mode_enc)
+            if res_operation is not None:
+                self.ui.label_status_operation_text.setText("выполнение операции завершено")
+                self.ui.label_status_operation_text.repaint()
+                self.show_messagebox("information", "Information about operation", str(res_operation))
+            self.ui.label_status_operation_text.setText("")
 
 
 app = QtWidgets.QApplication([])
