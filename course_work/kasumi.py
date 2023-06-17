@@ -151,25 +151,26 @@ class Kasumi:
 
         """ round 1"""
         left_1 = in_right
-        right_1 = self.xor_bitstr(self.func_fi(int(in_left, 2) ^ int(self.key_KO1, 16)), in_right)
+        right_1 = self.xor_bitstr(self.func_fi(int(in_left, 2) ^ int(self.key_KO1, 16), self.key_KI1), in_right)
 
         """ round 2"""
         in_left = right_1
-        in_right = self.xor_bitstr(self.func_fi(int(left_1, 2) ^ int(self.key_KO2, 16)), right_1)
+        in_right = self.xor_bitstr(self.func_fi(int(left_1, 2) ^ int(self.key_KO2, 16), self.key_KI2), right_1)
 
         """ round 3 """
         left_1 = in_right
-        right_1 = self.xor_bitstr(self.func_fi(int(in_left, 2) ^ int(self.key_KO3, 16)), in_right)
+        right_1 = self.xor_bitstr(self.func_fi(int(in_left, 2) ^ int(self.key_KO3, 16), self.key_KI3), in_right)
 
         return self.complete_str(left_1, 16) + self.complete_str(right_1, 16)
 
-    def func_fi(self, in_text):
+    def func_fi(self, in_text, round_key):
         bin_text = self.complete_str(bin(in_text)[2:], 16)
+        bin_r_k = self.complete_str(bin(int(round_key, 16))[2:], 16)
         in_left = bin_text[:9]
         in_right = bin_text[9:]
 
-        r_key1 = int(bin_text[:7], 2)
-        r_key2 = int(bin_text[7:], 2)
+        r_key1 = int(bin_r_k[:7], 2)
+        r_key2 = int(bin_r_k[7:], 2)
 
         out_left_1 = int(in_right, 2)
         out_right_1 = S9[int(in_left, 2)] ^ int(in_right, 2)
@@ -222,7 +223,6 @@ class Kasumi:
             if i + 16 >= len(plaintext):
                 new_part = self.last_block(plaintext[i:], "encrypt")
                 plaintext += new_part
-                print("added_part", plaintext)
             if mode_ecb:
                 ecb_plaintext = self.complete_str(self.xor_hex(plaintext[i:i+16], self.new_vi), 16)
                 self.left = bin(int(ecb_plaintext[:8], 16))[2:]
@@ -313,58 +313,3 @@ class Kasumi:
                 self.right = self.xor_bitstr(res_fl, self.left)
                 self.left = temp
         return self.complete_str(self.left, 32) + self.complete_str(self.right, 32)
-
-
-""" TESTS """
-# # u_key = "0x9900aabbccddeeff1122334455667788"
-# u_key = "12356"
-# # u_text = "0x0123456789abcdef1234567890abcdeffedcba09876543211"
-# u_text = "привет мир".encode("utf-8").hex()
-# # u_text = "123".encode("utf-8").hex()
-#
-# test_kasumi = Kasumi()
-# test_kasumi.set_key(u_key)
-#
-# print("Original__text:", u_text)
-# res_enc = test_kasumi.encrypt(u_text)
-# print("res_encryption:", res_enc)
-# #
-# # # test_enc = res_enc
-# # # for i in range(99):
-# # #     test_enc = test_kasumi.encrypt(test_enc, True)
-# # # for i in range(99):
-# # #     test_enc = test_kasumi.decrypt(test_enc, True)
-# #
-# test_kasumi.set_key("12334")
-# res_dec = test_kasumi.decrypt(res_enc)
-# print("res_decryption:", res_dec)
-# print(bytes.fromhex(res_dec[2:]).decode("utf-8"))
-# # 0x3236fdc67fb023eb
-# if u_text == res_dec:
-#     print("\n", "WE ARE THE CHAMPIONS!!!")
-
-# in_path = "test_work/7744.jpg"
-# out_path = "test_work/7744.jpg.kasumi"
-# dec_path = "test_work/7744_decrypted.png"
-
-# in_path = "test_work/Разумов.С.Ю.БИ20_НИР.docx"
-# out_path = "test_work/Разумов.С.Ю.БИ20_НИР.docx.kasumi"
-# dec_path = "test_work/Разумов.С.Ю.БИ20_НИР_decrypted.docx"
-
-# in_path = "test_work/kandinsky-cat-samurai.png"
-# out_path = "test_work/kandinsky-cat-samurai.png.kasumi"
-# dec_path = "test_work/kandinsky-cat-samurai_decrypted.png"
-
-# in_path = "test_work/aorus 4k_black.jpg"
-# out_path = "test_work/aorus 4k_black.jpg.kasumi"
-# dec_path = "test_work/aorus 4k_black_decrypted.jpg"
-
-# in_path = "apples.jpg"
-# out_path = "apples.jpg.kasumi"
-# dec_path = "apples_decrypted.png"
-#
-# res_enc_file = test_kasumi.encrypt_file(in_path, out_path, True)
-# print(res_enc_file)
-#
-# res_dec_file = test_kasumi.decrypt_file(out_path, dec_path, True)
-# print(res_dec_file)
