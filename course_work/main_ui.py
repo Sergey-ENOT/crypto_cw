@@ -94,19 +94,19 @@ class CryptoWindow(QtWidgets.QMainWindow):
         if self.ui.checkBox_change_paths.isChecked():
             self.change_paths()
 
-    def use_chiper(self, in_text, input_mode, mode_enc=False):
+    def use_chiper(self, in_text, input_mode, mode_cbc=False):
         self.kasumi.set_key(self.ui.lineEdit_user_key.text().encode("utf-8").hex())
         if input_mode == "text":
             if self.encryption_status:
                 try:
-                    return self.kasumi.encrypt(in_text.encode("utf-8").hex(), mode_enc)
+                    return self.kasumi.encrypt(in_text.encode("utf-8").hex(), mode_cbc)
                 except Exception as err:
                     self.show_messagebox("critical", "Critical", str(err))
                     return None
             else:
                 hex_res = ""
                 try:
-                    hex_res = self.kasumi.decrypt(in_text, mode_enc)
+                    hex_res = self.kasumi.decrypt(in_text, mode_cbc)
                     bytes_res_dec = bytes.fromhex(hex_res[2:])
                     res_utf_8 = bytes_res_dec.decode("utf-8")
                     return res_utf_8
@@ -120,7 +120,7 @@ class CryptoWindow(QtWidgets.QMainWindow):
                 try:
                     return self.kasumi.encrypt_file(self.ui.lineEdit_open_path.text(),
                                                     self.ui.lineEdit_save_path.text(),
-                                                    mode_enc)
+                                                    mode_cbc)
                 except Exception as err:
                     self.show_messagebox("critical", "Critical", str(err))
                     return None
@@ -128,7 +128,7 @@ class CryptoWindow(QtWidgets.QMainWindow):
                 try:
                     res_dec_file = self.kasumi.decrypt_file(self.ui.lineEdit_open_path.text(),
                                                             self.ui.lineEdit_save_path.text(),
-                                                            mode_enc)
+                                                            mode_cbc)
                     return res_dec_file
                 except ValueError:
                     self.show_messagebox("critical", "Critical", "Ошибка расшифрования. Неверный вход")
@@ -143,7 +143,7 @@ class CryptoWindow(QtWidgets.QMainWindow):
             self.show_messagebox("warning", "Warning", text_inf + " ключа")
         else:
             mode_enc = False
-            if self.ui.radioButton_ecb_tm.isChecked():
+            if self.ui.radioButton_cbc_tm.isChecked():
                 mode_enc = True
             res_operation = self.use_chiper(self.ui.plainTextEdit_input.toPlainText(), "text", mode_enc)
             self.ui.plainTextEdit_output.setPlainText(str(res_operation))
@@ -158,11 +158,11 @@ class CryptoWindow(QtWidgets.QMainWindow):
             self.show_messagebox("warning", "Warning", text_inf + " ключа")
         else:
             mode_enc = False
-            if self.ui.radioButton_ecb_fm.isChecked():
+            if self.ui.radioButton_cbc_fm.isChecked():
                 mode_enc = True
             self.ui.label_status_operation_text.setText("выполнение операции начато")
             self.ui.label_status_operation_text.repaint()
-            res_operation = self.use_chiper(in_text="", input_mode="file", mode_enc=mode_enc)
+            res_operation = self.use_chiper(in_text="", input_mode="file", mode_cbc=mode_enc)
             if res_operation is not None:
                 self.ui.label_status_operation_text.setText("выполнение операции завершено")
                 self.ui.label_status_operation_text.repaint()

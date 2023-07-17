@@ -194,11 +194,11 @@ class Kasumi:
                 new_part += "0"
             return new_part
 
-    def encrypt_file(self, path_input, path_output, mode_ecb=False):
+    def encrypt_file(self, path_input, path_output, mode_cbc=False):
         try:
             with open(path_input, "rb") as f:
                 plaintext = f.read().hex()
-                res_file_enc = self.encrypt(plaintext, mode_ecb)[2:]
+                res_file_enc = self.encrypt(plaintext, mode_cbc)[2:]
                 try:
                     with open(path_output, "wb") as g:
                         g.write(bytes.fromhex(res_file_enc))
@@ -213,7 +213,7 @@ class Kasumi:
         except FileNotFoundError:
             return "Файл для считывания не найден"
 
-    def encrypt(self, plaintext, mode_ecb=False):
+    def encrypt(self, plaintext, mode_cbc=False):
         if plaintext[:2] == "0x":
             plaintext = plaintext[2:]
         res_str = ""
@@ -223,7 +223,7 @@ class Kasumi:
             if i + 16 >= len(plaintext):
                 new_part = self.last_block(plaintext[i:], "encrypt")
                 plaintext += new_part
-            if mode_ecb:
+            if mode_cbc:
                 ecb_plaintext = self.complete_str(self.xor_hex(plaintext[i:i+16], self.new_vi), 16)
                 self.left = bin(int(ecb_plaintext[:8], 16))[2:]
                 self.right = bin(int(ecb_plaintext[8:], 16))[2:]
@@ -234,7 +234,7 @@ class Kasumi:
             self.right = self.complete_str(self.right, 32)
             res_enc = self.encrypt_block()
             res_str += self.complete_str(res_enc, 64)
-            if mode_ecb:
+            if mode_cbc:
                 self.new_vi = hex(int(res_enc, 2))[2:]
         final_block = "1" * 32 + self.complete_str(bin(self.added_null)[2:], 32)
         res_str += final_block
@@ -258,11 +258,11 @@ class Kasumi:
 
         return self.complete_str(self.left, 32) + self.complete_str(self.right, 32)
 
-    def decrypt_file(self, path_input, path_output, mode_ecb=False):
+    def decrypt_file(self, path_input, path_output, mode_cbc=False):
         try:
             with open(path_input, "rb") as f:
                 plaintext = f.read().hex()
-                res_file_dec = self.decrypt(plaintext, mode_ecb)[2:]
+                res_file_dec = self.decrypt(plaintext, mode_cbc)[2:]
                 try:
                     with open(path_output, "wb") as g:
                         g.write(bytes.fromhex(res_file_dec))
@@ -272,7 +272,7 @@ class Kasumi:
         except FileNotFoundError:
             return "Файл для считывания не найден"
 
-    def decrypt(self, chipertext, mode_ecb=False):
+    def decrypt(self, chipertext, mode_cbc=False):
         if chipertext[:2] == "0x":
             chipertext = chipertext[2:]
         res_str = ""
@@ -284,13 +284,13 @@ class Kasumi:
             raise ValueError
 
         for i in range(0, len(chipertext)-16, 16):
-            if mode_ecb:
+            if mode_cbc:
                 self.new_vi = chipertext[i:i+16]
             self.left = bin(int(chipertext[i:i+8], 16))[2:]
             self.right = bin(int(chipertext[i+8:i+16], 16))[2:]
             res_dec = self.decrypt_block()
 
-            if mode_ecb:
+            if mode_cbc:
                 res_str += self.complete_str(self.xor_bitstr(bin(int(self.last_vi, 16)), res_dec), 64)
                 self.last_vi = self.new_vi
             else:
